@@ -4,7 +4,7 @@
     
     // Name of the output file
     "outputFileName": "AppImage+Generated.swift",
-    
+
     // Whether to include folder paths in asset names
     "includeFolderPaths": false,
     

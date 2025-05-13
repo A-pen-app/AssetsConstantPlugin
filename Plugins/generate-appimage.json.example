@@ -4,7 +4,7 @@
     
     // 生成的文件名稱
     "outputFileName": "AppImage+Generated.swift",
-    
+
     // 是否在圖片名稱中包含資料夾路徑
     "includeFolderPaths": false,
     
