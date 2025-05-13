@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct DemoView: View {
+public struct DemoView: View { 
     public var body: some View {
         VStack(spacing: 20) {
             Image(appImage: .checkCircle)
