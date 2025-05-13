@@ -1,0 +1,29 @@
+{
+    // 添加到生成的枚舉名稱的前綴
+    "enumPrefix": "AppAsset",
+    
+    // 生成的文件名稱
+    "outputFileName": "AppImage+Generated.swift",
+    
+    // 是否在圖片名稱中包含資料夾路徑
+    "includeFolderPaths": false,
+    
+    // 是否根據資料夾結構使用命名空間（嵌套的枚舉）
+    "useNamespacing": true,
+    
+    // 生成代碼的訪問級別（public, internal, fileprivate, private）
+    "accessLevel": "public",
+    
+    // 是否在每次構建時強制重新生成，即使資產未變更
+    "forceRegeneration": false,
+    
+    // 是否在生成的代碼中添加時間戳註釋
+    "addTimestamp": true,
+    
+    // 自定義圖片名稱映射，可以覆蓋默認的轉換結果
+    "nameMapping": {
+        "profile_picture": "userAvatar",
+        "background_image": "appBackground",
+        "app_icon": "appLogo"
+    }
+} 
