@@ -1,0 +1,13 @@
+{
+  "generateImages": true,
+  "generateColors": true,
+  "imageOutputFileName": "AppImage+Generated.swift",
+  "colorOutputFileName": "AppColor+Generated.swift",
+  "includeFolderPaths": false,
+  "useNamespacing": false,
+  "nameMapping": {
+    "some-image-name": "customImageName",
+    "another-image": "anotherCustomName"
+  },
+  "accessLevel": "public"
+} 

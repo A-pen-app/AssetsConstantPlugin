@@ -7,11 +7,24 @@
 
 import Foundation
 
+/// Configuration options for the AssetsConstantPlugin
+///
+/// This struct defines all available configuration options for the plugin,
+/// including output file names, access levels, and generation preferences.
 public struct PluginConfiguration: Codable {
     // MARK: Lifecycle
 
-    public init(enumPrefix: String = "",
-                generateImages: Bool = true,
+    /// Creates a new plugin configuration with customizable options
+    /// - Parameters:
+    ///   - generateImages: Whether to generate image constants
+    ///   - generateColors: Whether to generate color constants
+    ///   - imageOutputFileName: The name of the output file for image constants
+    ///   - colorOutputFileName: The name of the output file for color constants
+    ///   - includeFolderPaths: Whether to include folder paths in asset names
+    ///   - useNamespacing: Whether to use namespacing for assets in different folders
+    ///   - nameMapping: Custom name mappings for asset names
+    ///   - accessLevel: Access control level for generated code
+    public init(generateImages: Bool = true,
                 generateColors: Bool = true,
                 imageOutputFileName: String = "AppImage+Generated.swift",
                 colorOutputFileName: String = "AppColor+Generated.swift",
@@ -19,7 +32,6 @@ public struct PluginConfiguration: Codable {
                 useNamespacing: Bool = false,
                 nameMapping: [String: String] = [:],
                 accessLevel: AccessLevel = .public) {
-        self.enumPrefix = enumPrefix
         self.generateImages = generateImages
         self.generateColors = generateColors
         self.imageOutputFileName = imageOutputFileName
@@ -32,6 +44,7 @@ public struct PluginConfiguration: Codable {
 
     // MARK: Public
 
+    /// Access level for generated code
     public enum AccessLevel: String, Codable {
         case `public` = "public"
         case `internal` = "internal"
@@ -40,6 +53,7 @@ public struct PluginConfiguration: Codable {
 
         // MARK: Public
 
+        /// Returns the Swift access modifier string
         public var modifier: String {
             return self == .internal ? "" : "\(rawValue) "
         }
@@ -47,35 +61,27 @@ public struct PluginConfiguration: Codable {
 
     // MARK: Internal
 
-    /// The prefix to add to the generated enum name
-    var enumPrefix: String
-    
     /// Whether to generate image constants
-    var generateImages: Bool
-    
-    /// Whether to generate color constants
-    var generateColors: Bool
+    let generateImages: Bool
 
-    /// The name of the output file for image constants (for backward compatibility)
-    var outputFileName: String {
-        return imageOutputFileName
-    }
-    
+    /// Whether to generate color constants
+    let generateColors: Bool
+
     /// The name of the output file for image constants
-    var imageOutputFileName: String
-    
+    let imageOutputFileName: String
+
     /// The name of the output file for color constants
-    var colorOutputFileName: String
+    let colorOutputFileName: String
 
     /// Whether to include folder paths in asset names
-    var includeFolderPaths: Bool
+    let includeFolderPaths: Bool
 
     /// Whether to use namespacing for assets in different folders
-    var useNamespacing: Bool
+    let useNamespacing: Bool
 
     /// Custom name mappings for asset names
-    var nameMapping: [String: String]
+    let nameMapping: [String: String]
 
     /// Access control level for generated code
-    var accessLevel: AccessLevel
+    let accessLevel: AccessLevel
 }

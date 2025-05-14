@@ -14,10 +14,6 @@ let package = Package(
         .plugin(
             name: "AssetsConstantPlugin",
             targets: ["AssetsConstantPlugin"]
-        ),
-        .library(
-            name: "Example",
-            targets: ["Example"]
         )
     ],
     targets: [

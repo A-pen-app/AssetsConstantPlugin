@@ -9,6 +9,9 @@ import Foundation
 import PackagePlugin
 
 /// Handler for SourceModuleTarget assets
+///
+/// This struct is responsible for discovering asset catalogs in Swift Package Manager
+/// targets and creating build commands for code generation.
 struct SourceModuleTargetHandler {
     // MARK: Lifecycle
 
@@ -19,25 +22,21 @@ struct SourceModuleTargetHandler {
 
     // MARK: Internal
 
+    /// The plugin context
     let context: PluginContext
+
+    /// The target to process
     let target: SourceModuleTarget
 
-    func findAssetCatalogs() -> [Path] {
-        // Find all asset catalogs
-        let assetCatalogs = findAssetCatalogs(in: target)
-
-        // If no asset catalogs were found through normal methods, try direct search
-        let allAssetCatalogs = assetCatalogs.isEmpty ?
-            searchForAssetCatalogs(in: context, target: target) :
-            assetCatalogs
-
-        return allAssetCatalogs
-    }
-
-    func createBuildCommands(pluginWorkDirectory: Path) throws -> [Command] {
-        let configuration = PluginConfiguration()
+    /// Creates build commands for the plugin
+    /// - Parameters:
+    ///   - plugin: The plugin instance
+    ///   - pluginWorkDirectory: Working directory for generated files
+    /// - Returns: Array of commands to execute
+    func createBuildCommands(plugin: AssetsConstantPlugin, pluginWorkDirectory: Path) throws -> [Command] {
+        // Read configuration from file or use defaults
+        let configuration = ConfigurationReader.readConfiguration(in: context.package.directory)
         let assetCatalogs = findAssetCatalogs()
-        let plugin = AssetsConstantPlugin()
 
         return try plugin.createBuildCommands(
             pluginWorkDirectory: pluginWorkDirectory,
@@ -46,23 +45,32 @@ struct SourceModuleTargetHandler {
         )
     }
 
-    // MARK: Private
-
-    /// Find all asset catalogs in the target
-    private func findAssetCatalogs(in target: SourceModuleTarget) -> [Path] {
+    /// Finds all asset catalogs in the target
+    /// - Returns: Array of paths to asset catalogs
+    func findAssetCatalogs() -> [Path] {
+        // Find all asset catalogs in the target
         var assetCatalogs: [Path] = []
 
         // Get unique directories from source files
         let directories = Set(target.sourceFiles.map { $0.path.removingLastComponent() })
         for directory in directories {
-            // No asset catalogs found via sourceFiles. Searching common locations...
             searchForAssetCatalogs(in: directory, results: &assetCatalogs)
+        }
+
+        // If no asset catalogs were found through normal methods, try direct search
+        if assetCatalogs.isEmpty {
+            return searchCommonLocations()
         }
 
         return assetCatalogs
     }
 
+    // MARK: Private
+
     /// Search for asset catalogs in the specified directory and its subdirectories
+    /// - Parameters:
+    ///   - directory: Directory to search in
+    ///   - results: Array to collect results
     private func searchForAssetCatalogs(in directory: Path, results: inout [Path]) {
         // Check if this is an .xcassets directory
         if directory.string.hasSuffix(".xcassets") {
@@ -71,21 +79,26 @@ struct SourceModuleTargetHandler {
         }
 
         // Check subdirectories
-        if let contents = try? FileManager.default.contentsOfDirectory(atPath: directory.string) {
-            for item in contents where !item.hasPrefix(".") {
-                let fullPath = directory.appending(item)
+        guard let contents = try? FileManager.default.contentsOfDirectory(atPath: directory.string) else {
+            return
+        }
 
-                // Check if this is a directory
-                var isDirectory: ObjCBool = false
-                if FileManager.default.fileExists(atPath: fullPath.string, isDirectory: &isDirectory), isDirectory.boolValue {
-                    searchForAssetCatalogs(in: fullPath, results: &results)
-                }
+        for item in contents where !item.hasPrefix(".") {
+            let fullPath = directory.appending(item)
+
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: fullPath.string, isDirectory: &isDirectory),
+                  isDirectory.boolValue else {
+                continue
             }
+
+            searchForAssetCatalogs(in: fullPath, results: &results)
         }
     }
 
-    /// Search for asset catalogs in known locations
-    private func searchForAssetCatalogs(in context: PluginContext, target: SourceModuleTarget) -> [Path] {
+    /// Search for asset catalogs in common locations
+    /// - Returns: Array of paths to found asset catalogs
+    private func searchCommonLocations() -> [Path] {
         var assetCatalogs: [Path] = []
 
         // Common paths for asset catalogs

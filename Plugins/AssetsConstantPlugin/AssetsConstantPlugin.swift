@@ -9,6 +9,11 @@ import Foundation
 import PackagePlugin
 
 /// The plugin for generating Swift constants from asset catalogs
+///
+/// This plugin generates type-safe Swift constants for assets in your asset catalogs.
+/// 
+/// The plugin can be configured by adding an `assets-constant.json` file to your project's root directory.
+/// See the README for full configuration options.
 @main
 struct AssetsConstantPlugin {
     // MARK: Internal
@@ -16,73 +21,36 @@ struct AssetsConstantPlugin {
     func createBuildCommands(pluginWorkDirectory: Path,
                              configuration: PluginConfiguration,
                              assetCatalogs: [Path]) throws -> [Command] {
-        // If no asset catalogs, don't generate anything
-        guard !assetCatalogs.isEmpty else {
-            return []
-        }
+        guard !assetCatalogs.isEmpty else { return [] }
 
         var commands = [Command]()
-        
-        // Generate image constants if enabled
+
+        // Generate Image Assets
         if configuration.generateImages {
-            let imageOutputFilePath = pluginWorkDirectory.appending(configuration.imageOutputFileName)
-            
-            // Generate Swift code directly in the plugin
-            let imageGenerator = AppImageSourceGenerator(
+            commands.append(contentsOf: generateAssetCommands(
                 configuration: configuration,
-                assetCatalogs: assetCatalogs
-            )
-            
-            let imageGeneratedCode = imageGenerator.generateSwiftCode()
-            
-            // Write the generated code to the output file
-            do {
-                try imageGeneratedCode.write(toFile: imageOutputFilePath.string, atomically: true, encoding: .utf8)
-            } catch {
-                print("❌ Error generating \(configuration.imageOutputFileName): \(error)")
-            }
-            
-            // Create a command for image generation
-            commands.append(
-                .buildCommand(
-                    displayName: "Generate \(configuration.imageOutputFileName)",
-                    executable: .init("/bin/echo"),
-                    arguments: ["Generated \(configuration.imageOutputFileName)"],
-                    inputFiles: collectAllInputFiles(from: assetCatalogs),
-                    outputFiles: [imageOutputFilePath]
-                )
-            )
+                pluginWorkDirectory: pluginWorkDirectory,
+                assetCatalogs: assetCatalogs,
+                outputFileName: configuration.imageOutputFileName,
+                definition: appImageDefinition,
+                className: "AppImage",
+                assetExtension: ".imageset",
+                assetTypeName: "image"
+            ))
         }
-        
-        // Generate color constants if enabled
+
+        // Generate Color Assets
         if configuration.generateColors {
-            let colorOutputFilePath = pluginWorkDirectory.appending(configuration.colorOutputFileName)
-            
-            // Generate Swift code directly in the plugin
-            let colorGenerator = AppColorSourceGenerator(
+            commands.append(contentsOf: generateAssetCommands(
                 configuration: configuration,
-                assetCatalogs: assetCatalogs
-            )
-            
-            let colorGeneratedCode = colorGenerator.generateSwiftCode()
-            
-            // Write the generated code to the output file
-            do {
-                try colorGeneratedCode.write(toFile: colorOutputFilePath.string, atomically: true, encoding: .utf8)
-            } catch {
-                print("❌ Error generating \(configuration.colorOutputFileName): \(error)")
-            }
-            
-            // Create a command for color generation
-            commands.append(
-                .buildCommand(
-                    displayName: "Generate \(configuration.colorOutputFileName)",
-                    executable: .init("/bin/echo"),
-                    arguments: ["Generated \(configuration.colorOutputFileName)"],
-                    inputFiles: collectAllInputFiles(from: assetCatalogs),
-                    outputFiles: [colorOutputFilePath]
-                )
-            )
+                pluginWorkDirectory: pluginWorkDirectory,
+                assetCatalogs: assetCatalogs,
+                outputFileName: configuration.colorOutputFileName,
+                definition: appColorDefinition,
+                className: "AppColor",
+                assetExtension: ".colorset",
+                assetTypeName: "color"
+            ))
         }
 
         return commands
@@ -90,20 +58,55 @@ struct AssetsConstantPlugin {
 
     // MARK: Private
 
-    private func collectAllInputFiles(from assetCatalogs: [Path]) -> [Path] {
+    private func generateAssetCommands(configuration: PluginConfiguration,
+                                       pluginWorkDirectory: Path,
+                                       assetCatalogs: [Path],
+                                       outputFileName: String,
+                                       definition: String,
+                                       className: String,
+                                       assetExtension: String,
+                                       assetTypeName: String) -> [Command] {
+        let outputPath = pluginWorkDirectory.appending(outputFileName)
+
+        let generator = AssetSourceGenerator(
+            configuration: configuration,
+            assetCatalogs: assetCatalogs,
+            assetDefinition: definition,
+            assetClassName: className,
+            assetExtension: assetExtension,
+            assetTypeName: assetTypeName
+        )
+
+        let generatedCode = generator.generateSwiftCode()
+
+        do {
+            try generatedCode.write(toFile: outputPath.string, atomically: true, encoding: .utf8)
+        } catch {
+            print("❌ Error generating \(outputFileName): \(error)")
+            return []
+        }
+
+        return [
+            .buildCommand(
+                displayName: "Generate \(outputFileName)",
+                executable: .init("/bin/echo"),
+                arguments: ["Generated \(outputFileName)"],
+                inputFiles: collectAssetInputFiles(from: assetCatalogs),
+                outputFiles: [outputPath]
+            )
+        ]
+    }
+
+    private func collectAssetInputFiles(from assetCatalogs: [Path]) -> [Path] {
         var allInputFiles: [Path] = []
         for catalog in assetCatalogs {
-            // Add the catalog itself
             allInputFiles.append(catalog)
-
-            // Add all files within the catalog recursively
-            collectAllFilesRecursively(in: catalog, result: &allInputFiles)
+            collectFilesRecursively(in: catalog, result: &allInputFiles)
         }
         return allInputFiles
     }
 
-    /// Collect all files recursively in a directory
-    private func collectAllFilesRecursively(in directory: Path, result: inout [Path]) {
+    private func collectFilesRecursively(in directory: Path, result: inout [Path]) {
         guard let contents = try? FileManager.default.contentsOfDirectory(atPath: directory.string) else {
             return
         }
@@ -113,12 +116,10 @@ struct AssetsConstantPlugin {
             var isDirectory: ObjCBool = false
 
             if FileManager.default.fileExists(atPath: itemPath.string, isDirectory: &isDirectory) {
-                // Add file to input files
                 result.append(itemPath)
 
-                // Recursively check subdirectories
                 if isDirectory.boolValue {
-                    collectAllFilesRecursively(in: itemPath, result: &result)
+                    collectFilesRecursively(in: itemPath, result: &result)
                 }
             }
         }
@@ -132,7 +133,10 @@ extension AssetsConstantPlugin: BuildToolPlugin {
         guard let target = target as? SourceModuleTarget else { return [] }
 
         let handler = SourceModuleTargetHandler(context: context, target: target)
-        return try handler.createBuildCommands(pluginWorkDirectory: context.pluginWorkDirectory)
+        return try handler.createBuildCommands(
+            plugin: AssetsConstantPlugin(),
+            pluginWorkDirectory: context.pluginWorkDirectory
+        )
     }
 }
 
@@ -143,7 +147,10 @@ extension AssetsConstantPlugin: BuildToolPlugin {
     extension AssetsConstantPlugin: XcodeBuildToolPlugin {
         func createBuildCommands(context: XcodePluginContext, target: XcodeTarget) throws -> [Command] {
             let handler = XcodeTargetHandler(context: context, target: target)
-            return try handler.createBuildCommands(pluginWorkDirectory: context.pluginWorkDirectory)
+            return try handler.createBuildCommands(
+                plugin: AssetsConstantPlugin(),
+                pluginWorkDirectory: context.pluginWorkDirectory
+            )
         }
     }
 #endif
