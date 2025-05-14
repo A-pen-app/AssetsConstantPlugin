@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct DemoView: View { 
+public struct DemoView: View {
     public var body: some View {
         VStack(spacing: 20) {
             Image(appImage: .checkCircle)
@@ -21,6 +21,11 @@ public struct DemoView: View {
             Image(appImage: .coins)
                 .resizable()
                 .frame(width: 40, height: 40)
+
+            Image(appImage: .comment)
+                .resizable()
+                .frame(width: 40, height: 40)
+                .foregroundStyle(Color(appColor: .main))
         }
         .padding()
     }

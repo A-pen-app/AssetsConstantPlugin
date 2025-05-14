@@ -1,5 +1,5 @@
 //
-//  AppImageSourceGenerator.swift
+//  AppColorSourceGenerator.swift
 //  AssetsConstantPlugin
 //
 //  Created by 李品毅 on 2025/5/14.
@@ -8,55 +8,55 @@
 import Foundation
 import PackagePlugin
 
-/// Generator for AppImage source code
-struct AppImageSourceGenerator {
+/// Generator for AppColor source code
+struct AppColorSourceGenerator {
     // MARK: Internal
 
     let configuration: PluginConfiguration
     let assetCatalogs: [Path]
 
-    /// Generate Swift code for the discovered assets
+    /// Generate Swift code for the discovered color assets
     func generateSwiftCode() -> String {
-        var allImageItems = scanAssetCatalogs()
+        var allColorItems = scanAssetCatalogs()
 
         // Sort and deduplicate assets
-        allImageItems.sort { $0.name < $1.name }
+        allColorItems.sort { $0.name < $1.name }
 
         // Group assets by namespace if using namespacing
         let generatedExtension: String
 
         if configuration.useNamespacing {
-            generatedExtension = generateNamespacedCode(from: allImageItems)
+            generatedExtension = generateNamespacedCode(from: allColorItems)
         } else {
-            generatedExtension = generateFlatCode(from: allImageItems)
+            generatedExtension = generateFlatCode(from: allColorItems)
         }
 
         // Create the complete file with proper imports
-        return appImageDefinition + "\n" + generatedExtension
+        return appColorDefinition + "\n" + generatedExtension
     }
 
     // MARK: Private
 
-    /// Scan all asset catalogs for images
+    /// Scan all asset catalogs for colors
     private func scanAssetCatalogs() -> [AssetItem] {
-        var allImageItems = [AssetItem]()
+        var allColorItems = [AssetItem]()
 
         for catalog in assetCatalogs {
-            let imageItems = scanAssetCatalog(path: catalog)
-            allImageItems.append(contentsOf: imageItems)
+            let colorItems = scanAssetCatalog(path: catalog)
+            allColorItems.append(contentsOf: colorItems)
         }
 
-        return allImageItems
+        return allColorItems
     }
 
-    /// Scan a single asset catalog for images
+    /// Scan a single asset catalog for colors
     private func scanAssetCatalog(path: Path) -> [AssetItem] {
         var results = [AssetItem]()
         scanFolderRecursively(path: path, folderPath: nil, results: &results)
         return results
     }
 
-    /// Recursively scan a folder for image assets
+    /// Recursively scan a folder for color assets
     private func scanFolderRecursively(path: Path, folderPath: String?, results: inout [AssetItem]) {
         let fileManager = FileManager.default
         guard let contents = try? fileManager.contentsOfDirectory(atPath: path.string) else {
@@ -73,14 +73,14 @@ struct AppImageSourceGenerator {
             }
         }
 
-        // Scan for image sets in the current folder
+        // Scan for color sets in the current folder
         for item in contents {
-            if item.hasSuffix(".imageset") {
-                // Found an imageset directory
-                let imageName = item.replacingOccurrences(of: ".imageset", with: "")
+            if item.hasSuffix(".colorset") {
+                // Found a colorset directory
+                let colorName = item.replacingOccurrences(of: ".colorset", with: "")
 
                 let assetItem = AssetItem(
-                    name: imageName,
+                    name: colorName,
                     folder: currentFolder,
                     fullPath: path.appending(item).string
                 )
@@ -109,41 +109,41 @@ struct AppImageSourceGenerator {
 
     /// Generate flat code structure (all assets at the same level)
     private func generateFlatCode(from items: [AssetItem]) -> String {
-        var uniqueImageNames = Set<String>()
+        var uniqueColorNames = Set<String>()
         var codeLines: [String] = []
 
-        // Process all images without considering folders
+        // Process all colors without considering folders
         for item in items {
-            let imageName = item.name
-            let assetName = getSwiftIdentifier(for: imageName)
+            let colorName = item.name
+            let assetName = getSwiftIdentifier(for: colorName)
 
             // If we've already processed this name, skip it
-            if uniqueImageNames.contains(assetName) {
+            if uniqueColorNames.contains(assetName) {
                 continue
             }
 
-            uniqueImageNames.insert(assetName)
+            uniqueColorNames.insert(assetName)
 
             // Apply custom name mapping if exists
-            let swiftName = configuration.nameMapping[imageName] ?? assetName
+            let swiftName = configuration.nameMapping[colorName] ?? assetName
 
             // Use the raw name for the string value
             let rawName = configuration.includeFolderPaths && item.folder != nil
-                ? "\(item.folder!)/\(imageName)"
-                : imageName
+                ? "\(item.folder!)/\(colorName)"
+                : colorName
 
-            codeLines.append("    static let \(swiftName) = AppImage(rawValue: \"\(rawName)\")")
+            codeLines.append("    static let \(swiftName) = AppColor(rawValue: \"\(rawName)\")")
         }
 
-        // Only add the extension if we found at least one image
+        // Only add the extension if we found at least one color
         if codeLines.isEmpty {
-            return "// No image assets found in the asset catalog"
+            return "// No color assets found in the asset catalog"
         }
 
         return """
         // Auto-generated from Assets.xcassets - DO NOT EDIT
 
-        \(configuration.accessLevel.modifier)extension AppImage {
+        \(configuration.accessLevel.modifier)extension AppColor {
         \(codeLines.joined(separator: "\n"))
         }
         """
@@ -178,7 +178,7 @@ struct AppImageSourceGenerator {
                 if !uniqueNames.contains(assetName) {
                     uniqueNames.insert(assetName)
                     let swiftName = configuration.nameMapping[item.name] ?? assetName
-                    rootLines.append("    static let \(swiftName) = AppImage(rawValue: \"\(item.name)\")")
+                    rootLines.append("    static let \(swiftName) = AppColor(rawValue: \"\(item.name)\")")
                 }
             }
 
@@ -199,13 +199,13 @@ struct AppImageSourceGenerator {
 
         // If no assets were found, return a comment
         if codeBlocks.isEmpty {
-            return "// No image assets found in the asset catalog"
+            return "// No color assets found in the asset catalog"
         }
 
         return """
         // Auto-generated from Assets.xcassets - DO NOT EDIT
 
-        \(configuration.accessLevel.modifier)extension AppImage {
+        \(configuration.accessLevel.modifier)extension AppColor {
         \(codeBlocks.joined(separator: "\n\n"))
         }
         """
@@ -240,7 +240,7 @@ struct AppImageSourceGenerator {
                 uniqueNames.insert(assetName)
                 let swiftName = configuration.nameMapping[item.name] ?? assetName
                 let rawName = configuration.includeFolderPaths ? "\(folder)/\(item.name)" : item.name
-                lines.append("\(indent)static let \(swiftName) = AppImage(rawValue: \"\(rawName)\")")
+                lines.append("\(indent)static let \(swiftName) = AppColor(rawValue: \"\(rawName)\")")
             }
         }
 

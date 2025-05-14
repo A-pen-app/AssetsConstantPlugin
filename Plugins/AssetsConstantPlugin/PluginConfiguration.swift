@@ -11,13 +11,19 @@ public struct PluginConfiguration: Codable {
     // MARK: Lifecycle
 
     public init(enumPrefix: String = "",
-                outputFileName: String = "AppImage+Generated.swift",
+                generateImages: Bool = true,
+                generateColors: Bool = true,
+                imageOutputFileName: String = "AppImage+Generated.swift",
+                colorOutputFileName: String = "AppColor+Generated.swift",
                 includeFolderPaths: Bool = false,
                 useNamespacing: Bool = false,
                 nameMapping: [String: String] = [:],
                 accessLevel: AccessLevel = .public) {
         self.enumPrefix = enumPrefix
-        self.outputFileName = outputFileName
+        self.generateImages = generateImages
+        self.generateColors = generateColors
+        self.imageOutputFileName = imageOutputFileName
+        self.colorOutputFileName = colorOutputFileName
         self.includeFolderPaths = includeFolderPaths
         self.useNamespacing = useNamespacing
         self.nameMapping = nameMapping
@@ -43,9 +49,23 @@ public struct PluginConfiguration: Codable {
 
     /// The prefix to add to the generated enum name
     var enumPrefix: String
+    
+    /// Whether to generate image constants
+    var generateImages: Bool
+    
+    /// Whether to generate color constants
+    var generateColors: Bool
 
-    /// The name of the output file
-    var outputFileName: String
+    /// The name of the output file for image constants (for backward compatibility)
+    var outputFileName: String {
+        return imageOutputFileName
+    }
+    
+    /// The name of the output file for image constants
+    var imageOutputFileName: String
+    
+    /// The name of the output file for color constants
+    var colorOutputFileName: String
 
     /// Whether to include folder paths in asset names
     var includeFolderPaths: Bool

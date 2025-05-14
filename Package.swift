@@ -7,10 +7,8 @@ import PackageDescription
 let package = Package(
     name: "AssetsConstantPlugin",
     platforms: [
-        .iOS(.v13),
-        .macOS(.v10_15),
-        .tvOS(.v13),
-        .watchOS(.v6)
+        .iOS(.v15),
+        .macOS(.v12)
     ],
     products: [
         .plugin(

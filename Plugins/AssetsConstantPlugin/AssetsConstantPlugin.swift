@@ -21,37 +21,71 @@ struct AssetsConstantPlugin {
             return []
         }
 
-        // Set up output file paths
-        let outputFilePath = pluginWorkDirectory.appending(configuration.outputFileName)
-
-        // Generate Swift code directly in the plugin
-        let generator = AppImageSourceGenerator(
-            configuration: configuration,
-            assetCatalogs: assetCatalogs
-        )
-
-        let generatedCode = generator.generateSwiftCode()
-
-        // Write the generated code to the output file
-        do {
-            try generatedCode.write(toFile: outputFilePath.string, atomically: true, encoding: .utf8)
-        } catch {
-            print("❌ Error generating \(configuration.outputFileName): \(error)")
+        var commands = [Command]()
+        
+        // Generate image constants if enabled
+        if configuration.generateImages {
+            let imageOutputFilePath = pluginWorkDirectory.appending(configuration.imageOutputFileName)
+            
+            // Generate Swift code directly in the plugin
+            let imageGenerator = AppImageSourceGenerator(
+                configuration: configuration,
+                assetCatalogs: assetCatalogs
+            )
+            
+            let imageGeneratedCode = imageGenerator.generateSwiftCode()
+            
+            // Write the generated code to the output file
+            do {
+                try imageGeneratedCode.write(toFile: imageOutputFilePath.string, atomically: true, encoding: .utf8)
+            } catch {
+                print("❌ Error generating \(configuration.imageOutputFileName): \(error)")
+            }
+            
+            // Create a command for image generation
+            commands.append(
+                .buildCommand(
+                    displayName: "Generate \(configuration.imageOutputFileName)",
+                    executable: .init("/bin/echo"),
+                    arguments: ["Generated \(configuration.imageOutputFileName)"],
+                    inputFiles: collectAllInputFiles(from: assetCatalogs),
+                    outputFiles: [imageOutputFilePath]
+                )
+            )
+        }
+        
+        // Generate color constants if enabled
+        if configuration.generateColors {
+            let colorOutputFilePath = pluginWorkDirectory.appending(configuration.colorOutputFileName)
+            
+            // Generate Swift code directly in the plugin
+            let colorGenerator = AppColorSourceGenerator(
+                configuration: configuration,
+                assetCatalogs: assetCatalogs
+            )
+            
+            let colorGeneratedCode = colorGenerator.generateSwiftCode()
+            
+            // Write the generated code to the output file
+            do {
+                try colorGeneratedCode.write(toFile: colorOutputFilePath.string, atomically: true, encoding: .utf8)
+            } catch {
+                print("❌ Error generating \(configuration.colorOutputFileName): \(error)")
+            }
+            
+            // Create a command for color generation
+            commands.append(
+                .buildCommand(
+                    displayName: "Generate \(configuration.colorOutputFileName)",
+                    executable: .init("/bin/echo"),
+                    arguments: ["Generated \(configuration.colorOutputFileName)"],
+                    inputFiles: collectAllInputFiles(from: assetCatalogs),
+                    outputFiles: [colorOutputFilePath]
+                )
+            )
         }
 
-        // Collect all input files from asset catalogs
-        let allInputFiles = collectAllInputFiles(from: assetCatalogs)
-
-        // Create a command to run a simple echo command so SPM knows we've processed this target
-        return [
-            .buildCommand(
-                displayName: "Generate \(configuration.outputFileName)",
-                executable: .init("/bin/echo"),
-                arguments: ["Generated \(configuration.outputFileName)"],
-                inputFiles: allInputFiles,
-                outputFiles: [outputFilePath]
-            )
-        ]
+        return commands
     }
 
     // MARK: Private

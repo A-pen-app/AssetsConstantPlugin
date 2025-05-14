@@ -8,16 +8,7 @@
 // Define the AppImage struct in the generated code, so it's available to users
 
 let appImageDefinition = """
-import Foundation
 import SwiftUI
-
-#if os(iOS) || os(tvOS) || os(watchOS)
-import UIKit
-public typealias PlatformImage = UIImage
-#elseif os(macOS)
-import AppKit
-public typealias PlatformImage = NSImage
-#endif
 
 /// A type-safe wrapper for images in asset catalogs.
 public struct AppImage: Hashable, RawRepresentable, Equatable {
@@ -31,14 +22,22 @@ public struct AppImage: Hashable, RawRepresentable, Equatable {
         return Image(appImage: self)
     }
 
-    public var platformImage: PlatformImage? {
-        return PlatformImage(appImage: self)
+    #if canImport(UIKit)
+    public var uiImage: UIImage {
+        UIImage(appImage: self) ?? UIImage()
     }
+    #endif
+
+    #if canImport(AppKit) && !targetEnvironment(macCatalyst)
+    public var nsImage: NSImage {
+        return NSImage(appImage: self) ?? .clear
+    }
+    #endif
 }
 
 public extension Image {
     init(appImage: AppImage) {
-        #if canImport(UIKit) && !os(watchOS)
+        #if canImport(UIKit) 
         if let _ = UIImage(named: appImage.rawValue, in: .main, compatibleWith: nil) {
             self.init(appImage.rawValue)
         } else {
@@ -56,13 +55,7 @@ public extension Image {
     }
 }
 
-#if os(iOS) || os(tvOS) || os(watchOS)
-public extension AppImage {
-    var uiImage: UIImage {
-        platformImage ?? UIImage()
-    }
-}
-
+#if canImport(UIKit)
 public extension UIImage {
     convenience init?(appImage: AppImage) {
         if let image = UIImage(named: appImage.rawValue, in: .main, compatibleWith: nil) {
@@ -75,7 +68,9 @@ public extension UIImage {
         }
     }
 }
-#elseif os(macOS)
+#endif
+
+#if canImport(AppKit) && !targetEnvironment(macCatalyst)
 public extension NSImage {
     convenience init?(appImage: AppImage) {
         if NSImage(named: appImage.rawValue) != nil {
