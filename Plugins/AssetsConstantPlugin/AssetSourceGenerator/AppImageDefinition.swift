@@ -57,15 +57,10 @@ public extension Image {
 
 #if canImport(UIKit)
 public extension UIImage {
-    convenience init?(appImage: AppImage) {
-        if let image = UIImage(named: appImage.rawValue, in: .main, compatibleWith: nil) {
-            self.init(cgImage: image.cgImage!)
-        } else if let image = UIImage(named: appImage.rawValue, in: .module, compatibleWith: nil) {
-            self.init(cgImage: image.cgImage!)
-        } else {
-            // Try the standard initialization as a fallback
-            self.init(named: appImage.rawValue)
-        }
+    static func from(appImage: AppImage) -> UIImage? {
+        return UIImage(named: appImage.rawValue, in: .main, compatibleWith: nil)
+            ?? UIImage(named: appImage.rawValue, in: .module, compatibleWith: nil)
+            ?? UIImage(named: appImage.rawValue)
     }
 }
 #endif
