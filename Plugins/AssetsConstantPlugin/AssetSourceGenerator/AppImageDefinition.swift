@@ -24,7 +24,7 @@ public struct AppImage: Hashable, RawRepresentable, Equatable {
 
     #if canImport(UIKit)
     public var uiImage: UIImage {
-        UIImage(appImage: self) ?? UIImage()
+        UIImage.from(appImage: self) ?? UIImage()
     }
     #endif
 
